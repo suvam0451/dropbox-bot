@@ -11,7 +11,7 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitUseStrict": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": false
   },
   "include": [
     "server.ts",
