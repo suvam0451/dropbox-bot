@@ -1,6 +1,9 @@
 import {Dropbox, Error, files} from 'dropbox';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as dotenv from "dotenv"
+
+dotenv.config()
 
 const dbx = new Dropbox({accessToken: process.env.DROPBOX_ACCESS_TOKEN});
 
