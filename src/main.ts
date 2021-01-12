@@ -7,8 +7,6 @@ dotenv.config()
 
 const dbx = new Dropbox({accessToken: process.env.DROPBOX_ACCESS_TOKEN});
 
-console.log(process.argv[2])
-
 fs.readFile(process.argv[2], 'utf8', (err, contents) => {
     if (err) {
         console.log('Error: ', err);
