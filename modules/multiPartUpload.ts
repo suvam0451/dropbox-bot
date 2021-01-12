@@ -24,7 +24,11 @@ function logProgress(progress: number, total: number) {
     console.log("Completed chunk upload: " + (progress + 1).toString() + "/" + total)
 }
 
-console.log("Uploading" + FILE_NAME)
+function logOffsets(offsetFrom: number, offsetTo: number, totalOffset: number) {
+    console.log(`Buffered: ${offsetFrom}/${totalOffset} to ${offsetTo}/${totalOffset}`)
+}
+
+console.log("Uploading " + FILE_NAME)
 fs.readFile(FILE_PATH, 'utf8', (err, contents) => {
     // contents.length
     const content = Buffer.from(contents, "utf8")
@@ -50,11 +54,11 @@ fs.readFile(FILE_PATH, 'utf8', (err, contents) => {
                 }
                 return dbx.filesUploadSessionStart(args).then(response => {
                     logProgress(idx, NUM_CHUNKS)
+                    logOffsets(0, blob.length, FILE_SIZE)
                     return response.result.session_id
                 })
             })
         } else if (idx < items.length - 1) {
-
             // Intermediate chunks continue to stream to the session
             return acc.then((sessionId) => {
                 // @ts-ignore (bug with the "contents parameter")
@@ -66,6 +70,7 @@ fs.readFile(FILE_PATH, 'utf8', (err, contents) => {
                 }
                 return dbx.filesUploadSessionAppendV2(args).then(() => {
                     logProgress(idx, NUM_CHUNKS)
+                    logOffsets(maxBlob * idx, maxBlob * (idx + 1), FILE_SIZE)
                     return sessionId
                 })
             })
@@ -73,7 +78,7 @@ fs.readFile(FILE_PATH, 'utf8', (err, contents) => {
             // The final chunk terminates the session and signals finalization to the server
             return acc.then((sessionId) => {
                 // @ts-ignore (bug with the "contents parameter")
-                let cursor : UploadSessionCursor = {session_id: sessionId, offset: FILE_SIZE - blob.length}
+                let cursor: UploadSessionCursor = {session_id: sessionId, offset: FILE_SIZE - blob.length}
                 const commit: files.CommitInfo = {
                     path: "/" + FILE_NAME,
                     // @ts-ignore
@@ -81,19 +86,20 @@ fs.readFile(FILE_PATH, 'utf8', (err, contents) => {
                     autorename: true,
                     mute: false
                 }
-                const args : UploadSessionFinishArg = {
+                const args: UploadSessionFinishArg = {
                     cursor: cursor,
                     commit: commit,
                     contents: blob
                 }
                 logProgress(idx, NUM_CHUNKS)
+                logOffsets(FILE_SIZE - blob.length, FILE_SIZE, FILE_SIZE)
                 return dbx.filesUploadSessionFinish({cursor: cursor, commit: commit, contents: blob})
             })
         }
     }, Promise.resolve(""))
 
     task.then((result) => {
-        if(typeof(result) == "string") {
+        if (typeof (result) == "string") {
             console.log("Failed: " + result)
         } else {
             console.log(`Status ${result.status} : ${result.result.path_lower}`)
